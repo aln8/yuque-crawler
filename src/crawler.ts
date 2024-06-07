@@ -4,9 +4,9 @@ import fs from "fs";
 import path from "path";
 import { BookParser } from "./parser";
 import { Book, BookCache, Doc, Title, TitleDocInfo } from "./info";
-import { DIR_PREFIX, BOOK_FILE, DOWNLOAD_TMP_DIR } from './constant'
-import Cookies from './cookies'
-import {download, poolProcess} from './downloader'
+import { DIR_PREFIX, BOOK_FILE, DOWNLOAD_TMP_DIR } from "./constant";
+import Cookies from "./cookies";
+import { download, poolProcess } from "./downloader";
 
 declare global {
   var appData: any;
@@ -113,13 +113,13 @@ export class Crawler {
   ) {
     // skip if it's already downloaded
     if (b.loaded) {
-      return
+      return;
     }
     if (b instanceof Doc && !b.hasChild()) {
       const url = this.downloadUrl(login, book_slug, b.slug);
       await this.download(url, dir, b.name);
-      b.loaded = true
-      this.cacheBook(this.#books)
+      b.loaded = true;
+      this.cacheBook(this.#books);
       return;
     }
 
@@ -137,15 +137,29 @@ export class Crawler {
         this.downloadBookMarkdown(item, login, book_slug, curDir)
       ),
     ]);
-    b.loaded = true
-    this.cacheBook(this.#books)
+    b.loaded = true;
+    this.cacheBook(this.#books);
   }
 
   async download(url: string, dir: string, name: string) {
-    await poolProcess(() => download(url))
-    const oName = path.resolve(DOWNLOAD_TMP_DIR, `${name}.md`)
-    const nName = path.resolve(dir, `${name}.md`)
-    await fs.promises.rename(oName, nName)
+    await poolProcess(() => download(url));
+    // let new_dir = dir.replace(/(\s+)/g, '\\$1')
+    // let new_name = name.replace(/(\s+)/g, '\\$1')
+    const oName = path.resolve(DOWNLOAD_TMP_DIR, `${name}.md`);
+    const nName = path.resolve(dir, `${name}.md`);
+    while (true) {
+      try {
+        await fs.promises.stat(oName);
+        break;
+      } catch (e) {
+        if (e.code === 'ENOENT') {
+          console.log(`sleep 2 sec wait for ${name}.md download`)
+        }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+    console.log(`rename ${oName}`);
+    await fs.promises.rename(oName, nName);
   }
 
   downloadUrl(login: string, book_slug: string, doc_id: string) {

@@ -69,10 +69,27 @@ class Cookie {
     // Check agreement checkbox
     await this.#page.click("input[data-testid=protocolCheckBox]");
 
+
+    await this.scrollCaptcha()
     // Click login button
     await this.#page.click("button[data-testid=btnLogin]");
     await this.#page.waitForNavigation();
     return await this.#page.cookies();
+  }
+
+  async scrollCaptcha() {
+    const start = await this.#page.$('span[id="nc_2_n1z"]');
+    const startinfo = await start.boundingBox();
+    console.log(startinfo.x)
+    const end =  await this.#page.waitForSelector('.nc-lang-cnt');
+    const endinfo = await end.boundingBox();
+    
+    await this.#page.mouse.move(startinfo.x,endinfo.y);
+    await this.#page.mouse.down();
+    for(var i=0;i<endinfo.width;i++) {
+        await this.#page.mouse.move(startinfo.x+i,endinfo.y);
+    }
+    await this.#page.mouse.up();
   }
 }
 
